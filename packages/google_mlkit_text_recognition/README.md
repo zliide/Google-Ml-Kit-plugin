@@ -33,7 +33,7 @@ pod 'GoogleMLKit/TextRecognitionJapanese', '~> 3.2.0'
 pod 'GoogleMLKit/TextRecognitionKorean', '~> 3.2.0'
 ```
 
-For the Android platform add to the `andorid/app/build.gradle` file:
+For the Android platform add to the `android/app/build.gradle` file:
 
 ```gradle
 dependencies {
@@ -66,11 +66,11 @@ final RecognizedText recognizedText = await textRecognizer.processImage(inputIma
 
 String text = recognizedText.text;
 for (TextBlock block in recognizedText.blocks) {
-  final Rect rect = block.rect;
-  final List<Offset> cornerPoints = block.cornerPoints;
+  final Rect rect = block.boundingBox;
+  final List<Point<int>> cornerPoints = block.cornerPoints;
   final String text = block.text;
   final List<String> languages = block.recognizedLanguages;
-
+  
   for (TextLine line in block.lines) {
     // Same getters as TextBlock
     for (TextElement element in line.elements) {

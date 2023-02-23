@@ -58,7 +58,7 @@ final objectDetector = ObjectDetector(options: options);
 ```dart
 final List<DetectedObject> objects = await objectDetector.processImage(inputImage);
 
-for(DetectedObject detectedObject in _objects){
+for(DetectedObject detectedObject in objects){
   final rect = detectedObject.boundingBox;
   final trackingId = detectedObject.trackingId;
 
@@ -115,6 +115,7 @@ final options = LocalObjectDetectorOptions(
   modelPath: modelPath,
   classifyObjects: true,
   multipleObjects: true,
+  mode: DetectionMode.stream,
 );
 final objectDetector = ObjectDetector(options: options);
 ```
