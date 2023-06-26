@@ -25,7 +25,7 @@ A Flutter plugin with common methods used in [google\_ml\_kit](https://github.co
 
   Because this plugin uses platform channels, no Machine Learning processing is done in Flutter/Dart, all the calls are passed to the native platform using `MethodChannel` in Android and `FlutterMethodChannel` in iOS, and executed using the Google's native APIs. Think of this plugin as a bridge between your app and Google's native ML Kit APIs. This plugin only passes the call to the native API and the processing is done by Google's API. It is important that you understand this concept when it comes to debugging errors for your ML model and/or app.
 
-- Since the plugin uses platform channels, you may encounter issues with the native API. Before submitting a new issue, identify the source of the issue. You can run both iOS and/or Android native [example apps by Google](https://github.com/googlesamples/mlkit) and make sure that the issue is not reproducible with their native examples. If you can reproduce the issue in their apps then report the issue to Google. The [authors](https://github.com/flutter-ml/google_ml_kit_flutter/blob/master/AUTHORS) do not have access to the source code of their native APIs, so you need to report the issue to them. If you find that their example apps are okay and still you have an issue using this plugin, then look at our [closed and open issues](https://github.com/googlesamples/mlkit/issues). If you cannot find anything that can help you then report the issue and provide enough details. Be patient, someone from the community will eventually help you.
+- Since the plugin uses platform channels, you may encounter issues with the native API. Before submitting a new issue, identify the source of the issue. You can run both iOS and/or Android native [example apps by Google](https://github.com/googlesamples/mlkit) and make sure that the issue is not reproducible with their native examples. If you can reproduce the issue in their apps then report the issue to Google. The [authors](https://github.com/flutter-ml/google_ml_kit_flutter/blob/master/AUTHORS) do not have access to the source code of their native APIs, so you need to report the issue to them. If you find that their example apps are okay and still you have an issue using this plugin, then look at our [closed and open issues](https://github.com/flutter-ml/google_ml_kit_flutter/issues). If you cannot find anything that can help you then report the issue and provide enough details. Be patient, someone from the community will eventually help you.
 
 ## Getting Started
 
@@ -50,53 +50,67 @@ final inputImage = InputImage.fromFile(file);
 From bytes:
 
 ```dart
-final inputImage = InputImage.fromBytes(bytes: bytes, inputImageData: inputImageData);
+final inputImage = InputImage.fromBytes(bytes: bytes, metadata: metadata);
 ```
 
-From [CameraImage](https://pub.dev/documentation/camera/latest/camera/CameraImage-class.html) (if you are using the [Camera plugin](https://pub.dev/packages/camera)):
+If you are using the [Camera plugin](https://pub.dev/packages/camera)) make sure to configure your [CameraController](https://pub.dev/documentation/camera/latest/camera/CameraController-class.html) to only use `nv21` for Android and `bgra8888` for iOS.
 
 ```dart
+import 'dart:io';
+
+import 'package:camera/camera.dart';
 import 'package:google_mlkit_commons/google_mlkit_commons.dart';
 
 final camera; // your camera instance
-
-final WriteBuffer allBytes = WriteBuffer();
-for (final Plane plane in cameraImage.planes) {
-  allBytes.putUint8List(plane.bytes);
-}
-final bytes = allBytes.done().buffer.asUint8List();
-
-final Size imageSize = Size(cameraImage.width.toDouble(), cameraImage.height.toDouble());
-
-final InputImageRotation imageRotation =
-    InputImageRotationValue.fromRawValue(camera.sensorOrientation);
-
-final InputImageFormat inputImageFormat =
-    InputImageFormatValue.fromRawValue(cameraImage.format.raw);
-
-final planeData = cameraImage.planes.map(
-  (Plane plane) {
-    return InputImagePlaneMetadata(
-      bytesPerRow: plane.bytesPerRow,
-      height: plane.height,
-      width: plane.width,
-    );
-  },
-).toList();
-
-final inputImageData = InputImageData(
-  size: imageSize,
-  imageRotation: imageRotation,
-  inputImageFormat: inputImageFormat,
-  planeData: planeData,
+final controller = CameraController(
+  camera,
+  ResolutionPreset.max,
+  enableAudio: false,
+  imageFormatGroup: Platform.isAndroid
+          ? ImageFormatGroup.nv21 // for Android
+          : ImageFormatGroup.bgra8888, // for iOS
 );
 
-final inputImage = InputImage.fromBytes(bytes: bytes, inputImageData: inputImageData);
+InputImage? _inputImageFromCameraImage(CameraImage image) {
+  // get camera rotation
+  final camera = cameras[_cameraIndex];
+  final rotation =
+  InputImageRotationValue.fromRawValue(camera.sensorOrientation);
+  if (rotation == null) return null;
+
+  // get image format
+  final format = InputImageFormatValue.fromRawValue(image.format.raw);
+  // validate format depending on platform
+  // only supported formats:
+  // * nv21 for Android
+  // * bgra8888 for iOS
+  if (format == null ||
+          (Platform.isAndroid && format != InputImageFormat.nv21) ||
+          (Platform.isIOS && format != InputImageFormat.bgra8888)) return null;
+
+  // since format is constraint to nv21 or bgra8888, both only have one plane
+  if (image.planes.length != 1) return null;
+  final plane = image.planes.first;
+
+  // compose InputImage using bytes
+  return InputImage.fromBytes(
+    bytes: plane.bytes,
+    metadata: InputImageMetadata(
+      size: Size(image.width.toDouble(), image.height.toDouble()),
+      rotation: rotation, // used only in Android
+      format: format, // used only in iOS
+      bytesPerRow: plane.bytesPerRow, // used only in iOS
+    ),
+  );
+}
+
+CameraImage image; // your image from camera/controller image stream
+final inputImage = _inputImageFromCameraImage(image);
 ```
 
 ## Example app
 
-Find the example app [here](https://github.com/flutter-ml/google_ml_kit_flutter/tree/master/packages/google_ml_kit/example).
+Find the example app [here](https://github.com/flutter-ml/google_ml_kit_flutter/tree/master/packages/example).
 
 ## Contributing
 

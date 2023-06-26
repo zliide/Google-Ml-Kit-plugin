@@ -1,3 +1,13 @@
+## 0.8.1
+
+* Fix: Confidence and angle only available for Android.
+* Feat: Add `TextSymbol`, only available for Android.
+
+## 0.7.0
+
+* Fix: Add confidence and angle in object response for `TextLine` and `TextElement`.
+* Update dependencies.
+
 ## 0.6.0
 
 * Update dependencies.

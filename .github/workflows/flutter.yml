@@ -11,7 +11,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v3.5.2
+    - uses: actions/checkout@v3.5.3
     - uses: actions/setup-java@v3.11.0
       with:
         java-version: 11
@@ -75,6 +75,10 @@ jobs:
 
     - name: Install dependencies for google_mlkit_selfie_segmentation
       working-directory: ./packages/google_mlkit_selfie_segmentation
+      run: flutter pub get
+
+    - name: Install dependencies for example
+      working-directory: ./packages/example
       run: flutter pub get
 
     # Check for any formatting issues in the code.

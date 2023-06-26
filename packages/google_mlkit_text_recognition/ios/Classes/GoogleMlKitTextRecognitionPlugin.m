@@ -35,6 +35,13 @@
     [registrar addMethodCallDelegate:instance channel:channel];
 }
 
+- (id)init {
+    self = [super init];
+    if (self)
+        instances = [NSMutableDictionary dictionary];
+    return  self;
+}
+
 - (void)handleMethodCall:(FlutterMethodCall *)call result:(FlutterResult)result {
     if ([call.method isEqualToString:startTextRecognizer]) {
         [self handleDetection:call result:result];
@@ -50,7 +57,7 @@
 - (MLKTextRecognizer*)initialize:(FlutterMethodCall *)call {
     NSNumber *scriptValue = call.arguments[@"script"];
     switch(scriptValue.intValue) {
-        case 0 : {
+        default : {
             MLKTextRecognizerOptions *latinOptions = [[MLKTextRecognizerOptions alloc] init];
             return [MLKTextRecognizer textRecognizerWithOptions:latinOptions];
         }
@@ -78,8 +85,6 @@
             return [MLKTextRecognizer textRecognizerWithOptions:koreanOptions];
         }
 #endif
-        default:
-            return NULL;
     }
 }
 
@@ -115,7 +120,9 @@
              cornerPoints:block.cornerPoints
                     frame:block.frame
                 languages:block.recognizedLanguages
-                     text:block.text];
+                     text:block.text
+               confidence:[NSNull null]
+                    angle:[NSNull null]];
             
             NSMutableArray *textLines = [NSMutableArray array];
             for (MLKTextLine *line in block.lines) {
@@ -125,7 +132,10 @@
                  cornerPoints:line.cornerPoints
                         frame:line.frame
                     languages:line.recognizedLanguages
-                         text:line.text];
+                         text:line.text
+                   confidence:[NSNull null] // TODO: replace with actual value once it is supported by Google's native API
+                        angle:[NSNull null]]; // TODO: replace with actual value once it is supported by Google's native API
+                // API: https://developers.google.com/ml-kit/reference/ios/mlkittextrecognitioncommon/api/reference/Classes/MLKTextLine
                 
                 NSMutableArray *elementsData = [NSMutableArray array];
                 for (MLKTextElement *element in line.elements) {
@@ -134,9 +144,14 @@
                     [self addData:elementData
                      cornerPoints:element.cornerPoints
                             frame:element.frame
-                        languages:NULL
-                             text:element.text];
+                        languages:element.recognizedLanguages
+                             text:element.text
+                       confidence:[NSNull null] // TODO: replace with actual value once it is supported by Google's native API
+                            angle:[NSNull null]]; // TODO: replace with actual value once it is supported by Google's native API
+                    // API: https://developers.google.com/ml-kit/reference/ios/mlkittextrecognitioncommon/api/reference/Classes/MLKTextElement
                     
+                    // TODO: add when Google's native API supports it
+                    elementData[@"symbols"] = @[];
                     [elementsData addObject:elementData];
                 }
                 
@@ -157,7 +172,9 @@
    cornerPoints:(NSArray<NSValue *> *)cornerPoints
           frame:(CGRect)frame
       languages:(NSArray<MLKTextRecognizedLanguage *> *)languages
-           text:(NSString *)text {
+           text:(NSString *)text
+     confidence:(NSNumber *)confidence
+          angle:(NSNumber *)angle {
     NSMutableArray *points = [NSMutableArray array];
     for (NSValue *point in cornerPoints) {
         [points addObject:@{ @"x" : @(point.CGPointValue.x),
@@ -180,6 +197,8 @@
         },
         @"recognizedLanguages" : allLanguageData,
         @"text" : text,
+        @"confidence" : confidence,
+        @"angle" : angle,
     }];
 }
 
