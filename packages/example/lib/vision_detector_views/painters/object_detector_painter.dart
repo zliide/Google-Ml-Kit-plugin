@@ -1,17 +1,25 @@
+import 'dart:io';
 import 'dart:ui';
 import 'dart:ui' as ui;
 
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 
 import 'coordinates_translator.dart';
 
 class ObjectDetectorPainter extends CustomPainter {
-  ObjectDetectorPainter(this._objects, this.rotation, this.absoluteSize);
+  ObjectDetectorPainter(
+    this._objects,
+    this.imageSize,
+    this.rotation,
+    this.cameraLensDirection,
+  );
 
   final List<DetectedObject> _objects;
-  final Size absoluteSize;
+  final Size imageSize;
   final InputImageRotation rotation;
+  final CameraLensDirection cameraLensDirection;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -31,21 +39,41 @@ class ObjectDetectorPainter extends CustomPainter {
       );
       builder.pushStyle(
           ui.TextStyle(color: Colors.lightGreenAccent, background: background));
-
-      for (final Label label in detectedObject.labels) {
+      if (detectedObject.labels.isNotEmpty) {
+        final label = detectedObject.labels
+            .reduce((a, b) => a.confidence > b.confidence ? a : b);
         builder.addText('${label.text} ${label.confidence}\n');
       }
-
       builder.pop();
 
       final left = translateX(
-          detectedObject.boundingBox.left, rotation, size, absoluteSize);
+        detectedObject.boundingBox.left,
+        size,
+        imageSize,
+        rotation,
+        cameraLensDirection,
+      );
       final top = translateY(
-          detectedObject.boundingBox.top, rotation, size, absoluteSize);
+        detectedObject.boundingBox.top,
+        size,
+        imageSize,
+        rotation,
+        cameraLensDirection,
+      );
       final right = translateX(
-          detectedObject.boundingBox.right, rotation, size, absoluteSize);
+        detectedObject.boundingBox.right,
+        size,
+        imageSize,
+        rotation,
+        cameraLensDirection,
+      );
       final bottom = translateY(
-          detectedObject.boundingBox.bottom, rotation, size, absoluteSize);
+        detectedObject.boundingBox.bottom,
+        size,
+        imageSize,
+        rotation,
+        cameraLensDirection,
+      );
 
       canvas.drawRect(
         Rect.fromLTRB(left, top, right, bottom),
@@ -55,9 +83,14 @@ class ObjectDetectorPainter extends CustomPainter {
       canvas.drawParagraph(
         builder.build()
           ..layout(ParagraphConstraints(
-            width: right - left,
+            width: (right - left).abs(),
           )),
-        Offset(left, top),
+        Offset(
+            Platform.isAndroid &&
+                    cameraLensDirection == CameraLensDirection.front
+                ? right
+                : left,
+            top),
       );
     }
   }

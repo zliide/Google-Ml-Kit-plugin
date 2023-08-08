@@ -1,3 +1,12 @@
+## 0.10.0
+
+* Update dependencies.
+
+## 0.9.0
+
+* Update README.
+* Update dependencies.
+
 ## 0.8.1
 
 * Fix: Confidence and angle only available for Android.
